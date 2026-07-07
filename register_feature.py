@@ -7,12 +7,11 @@
     pip install torch
     python scripts/export_dinov2_onnx.py
 
-    # 树莓派 / 开发机注册（需摄像头或图片目录；参数默认读 .env / 环境变量）
-    python register_feature.py register --key wdog --name 小白
+    # 树莓派 / 开发机注册
+    python register_feature.py register --key ydog --name 小黄
     python register_feature.py list
-    python register_feature.py delete --key wdog
-    python register_feature.py purge   # 去掉 manifest 里已无 .npz 的条目
-    python register_feature.py verify --key wdog
+    python register_feature.py delete --key ydog
+    python register_feature.py verify --key ydog
 """
 
 from __future__ import annotations
@@ -33,7 +32,6 @@ from feature_embed import (
     load_manifest,
     load_registry_entry,
     match_embedding,
-    save_manifest,
     save_registry_entry,
 )
 
@@ -171,7 +169,6 @@ def capture_frames_live(
         frames.append(frame.copy())
         print(f"  已采集 {len(frames)}/{frame_count}", end="\r")
         if preview and HAS_DISPLAY:
-            # 与 stage_yolo / stage_feature 一致：Picamera2 帧直接 imshow，勿 RGB2BGR
             show = frame.copy()
             cv2.putText(
                 show,
@@ -202,31 +199,10 @@ def cmd_list(args: argparse.Namespace) -> int:
         return 0
     print(f"registry: {os.path.abspath(args.registry_dir)}")
     for key, meta in sorted(entries.items()):
-        npz_path = os.path.join(args.registry_dir, f"{key}.npz")
-        npz_ok = os.path.isfile(npz_path)
-        status = "" if npz_ok else "  [缺少 .npz，请 delete/purge 后重新 register]"
         print(
             f"  {key:6s}  name={meta.get('name', '?')}  "
-            f"frames={meta.get('frames', '?')}  at={meta.get('registered_at', '?')}{status}"
+            f"frames={meta.get('frames', '?')}  at={meta.get('registered_at', '?')}"
         )
-    return 0
-
-
-def cmd_purge(args: argparse.Namespace) -> int:
-    """Remove manifest entries whose .npz file is missing."""
-    manifest = load_manifest(args.registry_dir)
-    entries = manifest.get("entries", {})
-    removed: list[str] = []
-    for key in list(entries.keys()):
-        npz_path = os.path.join(args.registry_dir, f"{key}.npz")
-        if not os.path.isfile(npz_path):
-            del entries[key]
-            removed.append(key)
-    if removed:
-        save_manifest(args.registry_dir, manifest)
-        print(f"已从 manifest 移除（无对应 .npz）: {', '.join(sorted(removed))}")
-        return 0
-    print("manifest 与 .npz 一致，无需 purge")
     return 0
 
 
@@ -337,7 +313,6 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    root = os.path.dirname(os.path.abspath(__file__))
     default_model = os.environ.get("FEATURE_MODEL_PATH", "/home/pi/Desktop/dinov2_vits14.onnx")
 
     parser = argparse.ArgumentParser(description="手办 DINOv2 特征注册工具")
@@ -352,16 +327,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_list = sub.add_parser("list", help="列出已注册手办")
     p_list.set_defaults(func=cmd_list)
 
-    p_del = sub.add_parser("delete", help="删除某类注册（含已废弃的旧 key）")
-    p_del.add_argument("--key", required=True, help="registry 中的 key，如 wdog / 旧版 ydog")
+    p_del = sub.add_parser("delete", help="删除某类注册")
+    p_del.add_argument("--key", required=True, choices=sorted(VALID_TARGET_KEYS))
     p_del.set_defaults(func=cmd_delete)
-
-    p_purge = sub.add_parser("purge", help="清理 manifest 中已无 .npz 的条目")
-    p_purge.set_defaults(func=cmd_purge)
 
     p_reg = sub.add_parser("register", help="注册新手办特征")
     p_reg.add_argument("--key", required=True, choices=sorted(VALID_TARGET_KEYS))
-    p_reg.add_argument("--name", required=True, help="显示名称，如 盖亚")
+    p_reg.add_argument("--name", required=True, help="显示名称，如 小黄")
     p_reg.add_argument("--frames", type=int, default=DEFAULT_FRAMES, help="采集帧数")
     p_reg.add_argument("--image-dir", help="从目录读图注册（开发机无摄像头时用）")
     p_reg.add_argument("--camera", choices=("auto", "picamera2", "opencv"), default="auto")

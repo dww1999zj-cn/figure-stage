@@ -124,13 +124,13 @@ cp .env.example .env
 
 
 
+python register_feature.py register --key ydog --name 小黄
 python register_feature.py register --key wdog --name 小白
-python register_feature.py register --key gaya --name 盖亚
-python register_feature.py register --key bubu --name 布布
+python register_feature.py register --key bubu --name Labubu
 
 python register_feature.py list
 
-python register_feature.py verify --key wdog
+python register_feature.py verify --key ydog
 
 ```
 
@@ -264,11 +264,12 @@ python test_vision_recognize.py --image your_figure.jpg
 
 |------|------|
 
-| `register --key wdog --name 小白` | 摄像头采帧注册 |
+| `register --key ydog --name 小黄` | 摄像头采帧注册 |
 | `list` | 列出已注册类别 |
-| `delete --key wdog` | 删除注册（含已废弃旧 key） |
-| `purge` | 清理 manifest 中已无 .npz 的条目 |
-| `verify --key wdog` | 单次匹配验证 |
+| `delete --key ydog` | 删除某类注册 |
+| `verify --key ydog` | 单次匹配验证 |
+
+合法 key：`bubu`、`sea`、`wdog`、`ydog`（支持对话中/结束后换娃开新会话）。
 
 
 
