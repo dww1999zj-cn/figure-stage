@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+yolo-env/
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Dev / test（本地开发用，不上传 GitHub）
+test_*.py
+recordings/
+
+# Runtime / Pi
+captures/
+docs/
+logs/
+*.wav
+*.pcm
+*.pt
+*.onnx
+registry/
+models/
+.DS_Store
+Thumbs.db
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
