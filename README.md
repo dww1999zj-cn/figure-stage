@@ -1,14 +1,18 @@
 # 手办舞台 Figure Stage
 
-树莓派 5 桌面手办互动：摄像头识别展示台上的手办，Realtime 端到端语音对话。
+树莓派 5 桌面手办互动：摄像头识别展示台上的手办，Realtime 语音对话与唱歌。
+
+<p align="center">
+  <img src="assets/figure-stage-promo.png" width="900" alt="手办舞台 Figure Stage 产品宣传图" />
+</p>
 
 ---
 
 ## 这是什么？
 
-「手办舞台」是一套跑在 **树莓派 5** 上的桌面互动装置：摄像头对准展示台，USB 麦克风与扬声器负责听和说。手办 **放上台** 后系统本地识别是哪一款；识别成功后开启 **Realtime 端到端语音**——能听、能说、可配置音色与人设，支持即兴对话。
+「手办舞台」是一套跑在 **树莓派 5** 上的桌面互动装置：摄像头对准展示台，USB 麦克风与扬声器负责听和说。手办 **放上台** 后系统本地识别是哪一款；识别成功后开启 **Realtime 端到端语音**——能听、能说、可配置音色与人设，支持即兴对话与唱歌。
 
-**一句话：把静态手办展示，升级成可对话的互动舞台。**
+**一句话：把静态手办展示，升级成可对话、可唱歌的互动舞台。**
 
 ---
 
@@ -158,6 +162,8 @@ python -c "import sounddevice; print(sounddevice.query_devices())"
 
 ```
 figure-stage/
+├── assets/
+│   └── figure-stage-promo.png  # 产品宣传图
 ├── stage_feature.py            # 主程序：轻触发 + DINOv2 匹配 + Realtime 语音
 ├── register_feature.py         # 特征注册 CLI
 ├── feature_embed.py            # DINOv2 ONNX + registry 公共逻辑
