@@ -85,17 +85,13 @@ cp .env.example .env
 每只手办注册一次。**机位、光线与以后运行时尽量相同。**
 
 ```bash
-python register_feature.py register --key wdog --name 手办A
-python register_feature.py register --key ydog --name 手办B
+python register_feature.py register --key wdog --name 小白   ###例子，自行先修改代码的VALID_TARGET_KEYS,和角色CHARACTER_CONFIG（feature_embed.pystage_feature.py）
+python register_feature.py register --key ydog --name 小黄   ###例子，自行先修改代码的VALID_TARGET_KEYS,和角色CHARACTER_CONFIG（feature_embed.pystage_feature.py）
 python register_feature.py list
 python register_feature.py verify --key wdog
 ```
 
-无 Pi 摄像头时：
 
-```bash
-python register_feature.py register --key wdog --name 手办A --image-dir ./captures/figure_a
-```
 
 结果在 `registry/`（`wdog.npz` 等 + `manifest.json`）。
 
