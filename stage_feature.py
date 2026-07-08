@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-手办舞台 — DINOv2 特征匹配方案（与 stage_yolo / stage_vision 无关）
+手办舞台 — DINOv2 特征匹配 + 豆包实时语音
 
 用法:
     python scripts/export_dinov2_onnx.py   # 开发机，仅需一次

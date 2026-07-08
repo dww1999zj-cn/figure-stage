@@ -18,8 +18,10 @@ yolo-env/
 .vscode/
 *.swp
 
-# Dev / test（本地开发用，不上传 GitHub）
+# Dev / test / 其它识别方案（本地保留，不上传 GitHub）
 test_*.py
+stage_yolo.py
+stage_vision.py
 recordings/
 
 # Runtime / Pi

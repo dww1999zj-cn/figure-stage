@@ -49,7 +49,7 @@ class DINOv2Embedder:
             raise FileNotFoundError(
                 f"未找到 ONNX 模型: {path}\n"
                 "开发机导出: python scripts/export_dinov2_onnx.py --output ~/Desktop/dinov2_vits14.onnx\n"
-                "树莓派默认路径与 toy.pt 相同: /home/pi/Desktop/dinov2_vits14.onnx"
+                "树莓派默认路径: /home/pi/Desktop/dinov2_vits14.onnx"
             )
 
         providers = ["CPUExecutionProvider"]

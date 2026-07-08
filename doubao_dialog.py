@@ -1,4 +1,4 @@
-"""豆包 Realtime StartSession dialog 构建（stage_*.py / test_doubao_voice.py 共用）。"""
+"""豆包 Realtime StartSession dialog 构建（stage_feature.py / test_doubao_voice.py 共用）。"""
 
 from __future__ import annotations
 

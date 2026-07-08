@@ -1,9 +1,7 @@
-ultralytics
 picamera2
 opencv-python-headless
 sounddevice
 scipy
 websockets
 numpy
-httpx
 onnxruntime
