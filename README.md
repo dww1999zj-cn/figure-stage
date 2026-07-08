@@ -18,18 +18,10 @@
 
 ## 产品形态
 
-```
-   ┌─────────────── 摄像头（俯视展示台）───────────────┐
-   │                                                   │
-   │              ■  ← 手办放这里，即触发              │
-   │           ┌─────────┐                             │
-   │           │  小舞台  │                             │
-   │           └─────────┘                             │
-   └───────────────────────────────────────────────────┘
-          🎤 USB 麦克风          🔊 扬声器
-                    │
-              树莓派 5（本地识别 + 云端语音）
-```
+<p align="center">
+  <img src="assets/stage-empty.png" width="520" alt="手办舞台实物：桁架展台、射灯与台前摄像头机位" />
+</p>
+<p align="center"><sub>实物展台：黑色桁架 + 顶部射灯 + 台前 Pi 摄像头（透明支架 + 排线）</sub></p>
 
 - **硬件形态**：树莓派 + IMX219 摄像头 + 小展示台 + USB 音频，适合书桌、展台、收藏展示角
 - **交互形态**：无需按钮——**上台即唤醒**，下台或超时结束；更换手办后自动切换对应人设与音色
@@ -163,7 +155,8 @@ python -c "import sounddevice; print(sounddevice.query_devices())"
 ```
 figure-stage/
 ├── assets/
-│   └── figure-stage-promo.png  # 产品宣传图
+│   ├── figure-stage-promo.png  # 产品宣传图
+│   └── stage-empty.png         # 实物空台照片
 ├── stage_feature.py            # 主程序：轻触发 + DINOv2 匹配 + Realtime 语音
 ├── register_feature.py         # 特征注册 CLI
 ├── feature_embed.py            # DINOv2 ONNX + registry 公共逻辑
