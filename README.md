@@ -34,6 +34,22 @@
 - 小展示台（固定机位）
 - 开发机（可选）：导出 ONNX；或用图片目录注册
 
+**舞台内部接线（参考）**
+
+<p align="center">
+  <img src="assets/stage-inside.png" width="520" alt="舞台底座内部：树莓派、摄像头、USB 声卡与扬声器接线" />
+</p>
+
+| 部件 | 接法 |
+|------|------|
+| 树莓派 | USB-C 供电 |
+| IMX219 摄像头 | CSI 排线 → Pi 摄像头接口 |
+| USB 声卡 | 插入 Pi USB 口（`.env` 中 `AUDIO_DEVICE_ID` 选此设备） |
+| 麦克风 | 接 USB 声卡输入 |
+| 扬声器 | 红黑线 → USB 声卡 / 功放输出 |
+
+台上摄像头另用短线引至台前支架（见 `stage-empty.png` 实物图），与底座内 Pi 通过 CSI 排线相连。
+
 **软件 / 账号**
 
 | 用途 | 需要什么 | 要不要 API |
@@ -83,7 +99,7 @@ cp .env.example .env
 ### 4. 注册手办
 
 每只手办注册一次。机位、光线与以后运行时尽量相同。
-**重要！！小白、小黄是代码例子，自己需要识别什么手办先修改代码两处VALID_TARGET_KEYS,和角色CHARACTER_CONFIG（feature_embed.py、pystage_feature.py）再去执行注册register_feature.py**
+**重要：** 小白、小黄是代码示例。注册前请先改 `feature_embed.py`、`stage_feature.py` 中的 `VALID_TARGET_KEYS` 与 `CHARACTER_CONFIG`，再执行 `register_feature.py`。
 
 ```bash
 python register_feature.py register --key wdog --name 小白   
@@ -139,6 +155,10 @@ python stage_feature.py
 
 ```
 figure-stage/
+├── assets/
+│   ├── figure-stage-promo.png
+│   ├── stage-empty.png
+│   └── stage-inside.png        # 底座内部接线参考
 ├── stage_feature.py          # 主程序
 ├── register_feature.py       # 注册
 ├── feature_embed.py          # 模型 + registry
