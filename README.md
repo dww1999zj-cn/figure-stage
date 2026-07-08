@@ -82,8 +82,8 @@ cp .env.example .env
 
 ### 4. 注册手办
 
-每只手办注册一次。**机位、光线与以后运行时尽量相同。**
-**重要！！小白、小黄是代码例子，自己需要识别什么手办先修改代码的VALID_TARGET_KEYS,和角色CHARACTER_CONFIG（feature_embed、pystage_feature.py）再去执行注册**
+每只手办注册一次。机位、光线与以后运行时尽量相同。
+**重要！！小白、小黄是代码例子，自己需要识别什么手办先修改代码两处VALID_TARGET_KEYS,和角色CHARACTER_CONFIG（feature_embed.py、pystage_feature.py）再去执行注册register_feature.py**
 
 ```bash
 python register_feature.py register --key wdog --name 小白   
