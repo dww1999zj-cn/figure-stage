@@ -59,7 +59,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. 导出 DINOv2 模型（开发机做一次）
+### 2. 导出 DINOv2 模型（可使用开发电脑环境做，导出到树莓派调用）
 
 ```bash
 pip install torch
