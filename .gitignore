@@ -27,6 +27,8 @@ test_*.py
 stage_yolo.py
 stage_vision.py
 recordings/
+esp32-cloud/   # 已拆至独立仓库 figure-stage-esp32；若本地残留目录勿提交
+
 
 # Runtime / Pi
 captures/

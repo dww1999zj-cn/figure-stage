@@ -161,7 +161,7 @@ figure-stage/
 │   ├── figure-stage-promo.jpg  # 宣传图
 │   ├── stage-empty.jpg         # 空台实物
 │   └── stage-inside.jpg        # 底座内部接线参考
-├── stage_feature.py          # 主程序
+├── stage_feature.py          # 主程序（推荐：树莓派本地识别 + 语音）
 ├── register_feature.py       # 注册
 ├── feature_embed.py          # 模型 + registry
 ├── doubao_dialog.py          # 语音会话配置
@@ -170,6 +170,8 @@ figure-stage/
 ├── registry/                 # 注册结果（本地，不进 git）
 └── models/*.onnx             # 模型文件（本地，不进 git）
 ```
+
+低成本 ESP32 实验线（云端识别，非推荐方案）见独立仓库：[figure-stage-esp32](https://github.com/dww1999zj-cn/figure-stage-esp32)。
 
 ---
 
