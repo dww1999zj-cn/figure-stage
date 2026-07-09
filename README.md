@@ -3,13 +3,13 @@
 树莓派 5 桌面手办互动：摄像头识别展示台上的手办，Realtime 语音对话与唱歌。
 
 <p align="center">
-  <img src="assets/figure-stage-promo.png" width="900" alt="手办舞台 Figure Stage 产品宣传图" />
+  <img src="assets/figure-stage-promo.jpg" width="900" alt="手办舞台 Figure Stage 产品宣传图" />
 </p>
 
 手办放上台 → **本地认出是哪一款** → **开口对话 / 唱歌**。识别不联网，只有语音走 Realtime API。
 
 <p align="center">
-  <img src="assets/stage-empty.png" width="480" alt="实物展台" />
+  <img src="assets/stage-empty.jpg" width="480" alt="实物展台" />
 </p>
 
 ---
@@ -37,7 +37,7 @@
 **舞台内部接线（参考）**
 
 <p align="center">
-  <img src="assets/stage-inside.png" width="520" alt="舞台底座内部：树莓派、摄像头、USB 声卡与扬声器接线" />
+  <img src="assets/stage-inside.jpg" width="520" alt="舞台底座内部：树莓派、摄像头、USB 声卡与扬声器接线" />
 </p>
 
 | 部件 | 接法 |
@@ -156,9 +156,9 @@ python stage_feature.py
 ```
 figure-stage/
 ├── assets/
-│   ├── figure-stage-promo.png
-│   ├── stage-empty.png
-│   └── stage-inside.png        # 底座内部接线参考
+│   ├── figure-stage-promo.jpg  # 宣传图
+│   ├── stage-empty.jpg         # 空台实物
+│   └── stage-inside.jpg        # 底座内部接线参考
 ├── stage_feature.py          # 主程序
 ├── register_feature.py       # 注册
 ├── feature_embed.py          # 模型 + registry
