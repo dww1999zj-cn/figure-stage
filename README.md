@@ -1,38 +1,70 @@
-# 手办舞台 Figure Stage
+# 手办舞台 Figure Stage（设备端）
 
-树莓派 5 桌面手办互动：摄像头识别展示台上的手办，Realtime 语音对话与唱歌。
+桌面固定摄像头识别手办 → **云端**算视觉特征 → **本机**连豆包 Realtime 开口对话。
 
-<p align="center">
-  <img src="assets/figure-stage-promo.jpg" width="900" alt="手办舞台 Figure Stage 产品宣传图" />
-</p>
-
-手办放上台 → **本地认出是哪一款** → **开口对话 / 唱歌**。识别不联网，只有语音走 Realtime API。
+**豆包 / 瑞幸等密钥只保存在设备本地**（门户网页填写），不会上传到识别云。
 
 <p align="center">
-  <img src="assets/stage-empty.jpg" width="480" alt="实物展台" />
+  <img src="assets/figure-stage-promo.jpg" width="900" alt="手办舞台 Figure Stage" />
 </p>
 
 ---
 
-## 怎么用（三步）
+## 架构（必读）
 
 ```
-① 准备：Pi + 摄像头 + 麦克风音箱 + ONNX 模型 + 语音 API 密钥
-② 注册：register_feature.py 为每只手办采帧，写入 registry/
-③ 运行：stage_feature.py — 空台几秒后，手办上台即识别并聊天
+┌─────────────────────────────────────────────────────────────┐
+│  树莓派 device/                                              │
+│  supervisor（systemd）                                        │
+│    ├─ 热点配网 + HTTP 门户 :8080                              │
+│    ├─ 提示音 prompts/*.wav                                    │
+│    └─ 自动启停 stage/run_stage.py                             │
+│         ├─ 画面变化 / 启动扫描 → 云识别                        │
+│         ├─ 豆包 Realtime 对话（密钥本地）                       │
+│         └─ 名字唤醒：本地 VAD + 豆包短句 ASR（轻流量）          │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ HTTPS + Bearer Token
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  识别云服务（由运营方提供 URL 与 Token）                        │
+│  仅存视觉特征 / 清单；不存豆包密钥、不存人设全文                │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+| 数据 | 存在哪 |
+|------|--------|
+| 视觉特征、手办名、音色预设 | 识别云（按 `DEVICE_ID` 隔离） |
+| 人设 persona | 本机 `device/figures_local.json` |
+| 豆包 / 云 Token / DEVICE_ID | 本机 `device/config.env` |
 
 ---
 
-## 需要什么
+## 仓库结构
 
-**硬件（树莓派 5 上运行）**
+| 路径 | 说明 |
+|------|------|
+| **[`device/`](device/)** | 门户 + 监督进程 + 薄舞台 + systemd（主目录） |
+| [`legacy/`](legacy/) | 旧本机识别原型归档，勿当新装路径 |
+| [`assets/`](assets/) | 宣传图 |
 
-- 树莓派 5
-- IMX219 摄像头（CSI）
-- USB 麦克风 + 扬声器
-- 小展示台（固定机位）
-- 开发机（可选）：导出 ONNX；或用图片目录注册
+日常只操作 **`device/`**。从 SD 卡到开机自启的细节与排障见 **[`device/README.md`](device/README.md)**。
+
+---
+
+## 你需要准备什么
+
+### 软件 / 账号
+
+1. 运营方提供的 **`CLOUD_BASE_URL`** + **`DEVICE_CLOUD_TOKEN`**（与云端约定一致，**勿自造**）
+2. 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY`
+3. （可选）提示音 WAV：见 `device/prompts/README.md`
+
+### 硬件（已验证：Pi 5）
+
+- Raspberry Pi 5 + 官方或兼容电源
+- CSI 摄像头 **imx219**（需改 `config.txt`，见 `device/README.md`）
+- USB 声卡（播放 + 麦克；勿默认走 HDMI）
+- 可选：网线（断 Wi‑Fi 测热点时仍能 SSH）
 
 **舞台内部接线（参考）**
 
@@ -44,143 +76,52 @@
 |------|------|
 | 树莓派 | USB-C 供电 |
 | IMX219 摄像头 | CSI 排线 → Pi 摄像头接口 |
-| USB 声卡 | 插入 Pi USB 口（`.env` 中 `AUDIO_DEVICE_ID` 选此设备） |
+| USB 声卡 | 插入 Pi USB 口（`config.env` 中 `AUDIO_DEVICE_ID` 选此设备） |
 | 麦克风 | 接 USB 声卡输入 |
 | 扬声器 | 红黑线 → USB 声卡 / 功放输出 |
-| 舞台架 | 3D打印，如喜欢我的这种，可以联系我购买建模文件，微信：alex_198888 |
-
-
-台上摄像头另用短线引至台前支架（见 `stage-empty.png` 实物图），与底座内 Pi 通过 CSI 排线相连。
-
-**软件 / 账号**
-
-| 用途 | 需要什么 | 要不要 API |
-|------|----------|------------|
-| 导出模型 | 开发机装 `torch`，跑 `export_dinov2_onnx.py` | 否 |
-| 注册手办 | `register_feature.py` | 否 |
-| 识别手办 | `stage_feature.py` 视觉部分 | 否 |
-| 语音对话 | `stage_feature.py` + `.env` 里 `DOUBAO_*` | **是** |
-
-语音 API：在 [火山引擎](https://www.volcengine.com/) 注册 → [语音应用管理](https://console.volcengine.com/speech/app) 创建应用 → 开通 **端到端实时语音** → 把 App ID、Access Key、App Key 填入 `.env`。  
-文档：[Realtime API](https://www.volcengine.com/docs/6561/1801940)。按量计费，密钥只放本地 `.env`，勿提交 git。
+| 舞台架 | 3D 打印；如需同款建模文件，可联系微信：alex_198888 |
 
 ---
 
-## 部署步骤
-
-### 1. 克隆并安装依赖
+## 快速路径（已有云地址 + 已刷系统）
 
 ```bash
-git clone https://github.com/dww1999zj-cn/figure-stage.git
-cd figure-stage
+cd device
 python3 -m venv .venv && source .venv/bin/activate
+# 大包优先 apt，再 pip 小包 —— 详见 device/README.md
 pip install -r requirements.txt
+cp config.example.env config.env   # 或稍后用门户填写
+
+# 自备 prompts/*.wav 后：
+sudo bash install.sh
+sudo systemctl enable --now figure-stage
 ```
 
-### 2. 导出 DINOv2 模型（可使用开发电脑环境做，导出到树莓派调用）
+门户（已联网）：**http://figure-stage.local:8080/**  
+状态：`GET /api/status` → `phase` 应为 `stage_ready`。
 
-```bash
-pip install torch
-python scripts/export_dinov2_onnx.py
-```
-
-把生成的 `models/dinov2_vits14.onnx` 拷到 Pi（如 `~/Desktop/`）。
-
-### 3. 配置 `.env`
-
-```bash
-cp .env.example .env
-```
-
-至少填写：
-
-- `FEATURE_MODEL_PATH` — Pi 上 ONNX 路径  
-- `DOUBAO_APP_ID` / `DOUBAO_ACCESS_KEY` / `DOUBAO_APP_KEY` — 语音三项（要对话时必填）  
-- `AUDIO_DEVICE_ID` — USB 声卡编号（`python -c "import sounddevice; print(sounddevice.query_devices())"` 查看）
-
-### 4. 注册手办
-
-每只手办注册一次。机位、光线与以后运行时尽量相同。
-**重要：** 小白、小黄是代码示例。注册前请先改 `feature_embed.py`、`stage_feature.py` 中的 `VALID_TARGET_KEYS` 与 `CHARACTER_CONFIG`，再执行 `register_feature.py`。
-
-```bash
-python register_feature.py register --key wdog --name 小白   
-python register_feature.py register --key ydog --name 小黄   
-python register_feature.py list
-python register_feature.py verify --key wdog
-```
-
-
-
-结果在 `registry/`（`wdog.npz` 等 + `manifest.json`）。
-
-### 5. 运行
-
-```bash
-python stage_feature.py
-```
-
-- 启动后 **约 3 秒保持空台**（采背景）
-- 手办上台 → 本地匹配 → 开始语音
-- 换另一只手办 → 可开新会话
+完整从 SD 卡到自启：**务必读 [`device/README.md`](device/README.md)**。
 
 ---
 
-## 手办 key 从哪来？
+## 运行时行为摘要
 
-能注册哪些 key，写在代码里，**不是**看 `registry/` 里有什么文件。
-
-| 文件 | 管什么 |
-|------|--------|
-| `feature_embed.py` → `VALID_TARGET_KEYS` | 允许注册哪些 key |
-| `stage_feature.py` → `VALID_TARGET_KEYS` | 允许识别哪些 key |
-| `stage_feature.py` → `CHARACTER_CONFIG` | 每个 key 说什么话、什么音色 |
-| `registry/{key}.npz` | 该 key 已采过的视觉特征 |
-
-**新增一只手办：** 上面三个代码处都加上同一个 key → 再 `register` → 再运行。
+1. **开机** → `figure-stage.service` → `python -m supervisor`
+2. 等 Wi‑Fi（默认 20s）→ 无网则开热点 `FigureStage-Setup` / `figurestage`，门户 `http://10.42.0.1:8080/`
+3. 无网提示音 **同一次离线只播一次**（不是循环念）
+4. 凭证 + ≥1 手办 → 自动起舞台；注册后会空台等待 + 启动扫描
+5. 聊完手办不移开 → **喊注册名**唤醒（不上 60s 视觉自动再开聊）；空台 / 未识别物体喊名字无效
 
 ---
 
-## 常用命令
+## 与识别云的约定
 
-| 命令 | 作用 |
-|------|------|
-| `register_feature.py register --key wdog --name 手办A` | 注册 |
-| `register_feature.py list` | 看已注册 |
-| `register_feature.py verify --key wdog` | 测识别 |
-| `register_feature.py delete --key wdog` | 删除 |
-| `stage_feature.py` | 上台识别 + 聊天 |
+- 请求头：`Authorization: Bearer <DEVICE_CLOUD_TOKEN>`
+- `DEVICE_ID`：门户首次自动生成并写入本机
+- 云地址与 Token 由运营方下发；设备只负责调用
 
 ---
 
-## 项目结构
+## License
 
-```
-figure-stage/
-├── assets/
-│   ├── figure-stage-promo.jpg  # 宣传图
-│   ├── stage-empty.jpg         # 空台实物
-│   └── stage-inside.jpg        # 底座内部接线参考
-├── stage_feature.py          # 主程序（推荐：树莓派本地识别 + 语音）
-├── register_feature.py       # 注册
-├── feature_embed.py          # 模型 + registry
-├── doubao_dialog.py          # 语音会话配置
-├── scripts/export_dinov2_onnx.py
-├── .env.example
-├── registry/                 # 注册结果（本地，不进 git）
-└── models/*.onnx             # 模型文件（本地，不进 git）
-```
-
-低成本 ESP32 实验线（云端识别，非推荐方案）见独立仓库：[figure-stage-esp32](https://github.com/dww1999zj-cn/figure-stage-esp32)。
-
----
-
-## 许可
-
-| 文档 | 说明 |
-|------|------|
-| [LICENSE](LICENSE) | 非商业免费 |
-| [COMMERCIAL.md](COMMERCIAL.md) | 商用联系 dww1999zj@gmail.com |
-| [TRADEMARK.md](TRADEMARK.md) | 项目名称规则 |
-
-许可人：**dww1999zj-cn**
+MIT · 见 `TRADEMARK.md` / `COMMERCIAL.md`

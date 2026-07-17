@@ -1,0 +1,10 @@
+picamera2
+opencv-python-headless
+sounddevice
+scipy
+websockets
+numpy
+onnxruntime
+httpx
+qrcode
+Pillow

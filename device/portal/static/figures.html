@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>手办注册</title>
+  <style>
+    :root { --bg:#0f1419; --panel:#1a222c; --text:#e8eef4; --muted:#8b9aab; --accent:#3d9cf0; --border:#2c3848; --ok:#3ecf8e; --err:#e85d5d; }
+    *{box-sizing:border-box} body{margin:0;font-family:"Segoe UI","PingFang SC",sans-serif;color:var(--text);background:var(--bg);padding:24px 16px}
+    .wrap{max-width:440px;margin:0 auto} a{color:var(--accent);text-decoration:none}
+    label{display:block;font-size:.8rem;color:var(--muted);margin:12px 0 6px}
+    input,select,textarea,button{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:1rem}
+    textarea{min-height:120px;line-height:1.45;resize:vertical;font-size:.92rem}
+    button{background:linear-gradient(180deg,#3d9cf0,#2a6fad);border:none;font-weight:600;margin-top:10px;cursor:pointer}
+    button.secondary{background:var(--panel);border:1px solid var(--border)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .item{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.95rem;align-items:flex-start}
+    .status{margin-top:12px;color:var(--muted);font-size:.9rem;line-height:1.4} .ok{color:var(--ok)} .err{color:var(--err)}
+    .hint{font-size:.78rem;color:var(--muted);margin-top:4px}
+    .success-box{display:none;margin-top:14px;padding:14px;border-radius:12px;border:1px solid var(--ok);background:rgba(62,207,142,.08);font-size:.88rem;line-height:1.5;color:var(--muted)}
+    .success-box strong{color:var(--ok)}
+    .section{margin-top:24px;padding-top:8px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="/">← 返回</a></p>
+    <h1>手办注册</h1>
+    <p style="color:var(--muted);font-size:.9rem">
+      视觉特征上传云端；<strong>人设只存本机</strong>（figures_local.json），不上传识别云。
+      注册完成后请<strong style="color:var(--text)">先移开手办</strong>，舞台启动后会采集空台背景；也可稍后再放上，系统会自动识别。
+    </p>
+    <div id="list">加载列表…</div>
+    <h2 class="section" style="font-size:1.05rem;margin-top:24px">添加</h2>
+    <label>名称</label>
+    <input id="name" placeholder="例如：小白" />
+    <label>音色预设</label>
+    <select id="voice">
+      <option value="wdog">小白 wdog</option>
+      <option value="ydog">小黄 ydog</option>
+      <option value="bubu">Labubu bubu</option>
+      <option value="sea">路飞 sea</option>
+      <option value="gaya">盖亚 gaya</option>
+    </select>
+    <label>手办人设（本机保存，可改）</label>
+    <p class="hint">切换音色会填入样例人设；可按你的手办修改。对话时本机读取，不上传云端。</p>
+    <textarea id="persona"></textarea>
+    <button type="button" id="cam">设备摄像头采集并注册</button>
+    <div class="success-box" id="successBox">
+      <strong>注册成功</strong><br>
+      监督进程即将启动舞台。请<strong>移开手办约 10 秒</strong>，让镜头记录空台；之后可以：
+      <br>① 保持空台，稍后再把手办放上去；或
+      <br>② 不移开也可以，启动后会自动扫描识别（建议仍移开几秒，识别更稳）。
+    </div>
+
+    <h2 class="section" style="font-size:1.05rem">编辑已有手办人设</h2>
+    <label>选手办</label>
+    <select id="editPick"><option value="">— 请先加载列表 —</option></select>
+    <textarea id="editPersona"></textarea>
+    <button type="button" id="savePersona" class="secondary">仅保存人设到本机</button>
+    <div class="status" id="status"></div>
+  </div>
+  <script>
+    let personaSamples={};
+    const statusEl=document.getElementById("status");
+    const camBtn=document.getElementById("cam");
+    const voiceEl=document.getElementById("voice");
+    const personaEl=document.getElementById("persona");
+    const editPick=document.getElementById("editPick");
+    const editPersona=document.getElementById("editPersona");
+    let figuresCache=[];
+    function setStatus(t, ok){ statusEl.className="status "+(ok===true?"ok":ok===false?"err":""); statusEl.textContent=t; }
+    function applyPersonaSample(){
+      personaEl.value=personaSamples[voiceEl.value]||personaSamples.wdog||"";
+    }
+    voiceEl.onchange=applyPersonaSample;
+    async function loadSamples(){
+      try{
+        const d=await (await fetch("/api/persona-samples")).json();
+        if(d.ok) personaSamples=d.samples||{};
+      }catch(e){}
+      applyPersonaSample();
+    }
+    function fillEditPick(){
+      editPick.innerHTML=figuresCache.length
+        ? figuresCache.map(f=>`<option value="${f.figure_id}">${f.name} · ${f.voice_preset||""}</option>`).join("")
+        : `<option value="">暂无手办</option>`;
+      syncEditPersona();
+    }
+    function syncEditPersona(){
+      const fid=editPick.value;
+      const fig=figuresCache.find(f=>f.figure_id===fid);
+      editPersona.value=(fig&&fig.persona)||"";
+    }
+    editPick.onchange=syncEditPersona;
+    async function refresh(){
+      try{
+        const d=await (await fetch("/api/figures")).json();
+        const box=document.getElementById("list");
+        if(!d.ok){ box.textContent=d.error||"列表失败"; return; }
+        figuresCache=d.figures||[];
+        if(!figuresCache.length){ box.textContent="暂无手办"; fillEditPick(); return; }
+        box.innerHTML=figuresCache.map(f=>{
+          const persona=f.persona?`<br><small style="color:#8b9aab">${f.persona.slice(0,36)}${f.persona.length>36?"…":""}</small>`:"";
+          return `<div class="item"><span>${f.name} · ${f.voice_preset||""}${persona}<br><small style="color:#8b9aab">${f.figure_id}</small></span>
+          <button class="secondary" style="width:auto;padding:8px 12px;flex-shrink:0" data-del="${f.figure_id}">删除</button></div>`;
+        }).join("");
+        box.querySelectorAll("[data-del]").forEach(btn=>{
+          btn.onclick=async()=>{
+            if(!confirm("删除云端特征与本机人设？")) return;
+            const r=await fetch("/api/figures/"+btn.dataset.del+"/delete",{method:"POST"});
+            const j=await r.json();
+            if(!j.ok){ setStatus(j.error||"删除失败", false); return; }
+            refresh();
+          };
+        });
+        fillEditPick();
+      }catch(e){ document.getElementById("list").textContent=e.message; }
+    }
+    camBtn.onclick=async()=>{
+      const name=document.getElementById("name").value.trim();
+      const persona=personaEl.value.trim();
+      if(!name){ setStatus("请填写名称", false); return; }
+      if(!persona){ setStatus("请填写手办人设", false); return; }
+      camBtn.disabled=true;
+      setStatus("正在采帧并上传特征，请勿移动手办…");
+      try{
+        const r=await fetch("/api/figures/register",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({name, voice_preset:voiceEl.value, persona, use_camera:true}),
+        });
+        const d=await r.json();
+        if(!d.ok){ setStatus(d.error||"失败", false); return; }
+        setStatus("已注册: "+(d.name||"")+" ("+(d.figure_id||"")+")，人设已存本机", true);
+        document.getElementById("successBox").style.display="block";
+        refresh();
+      }catch(e){ setStatus(e.message||"请求失败", false); }
+      finally{ camBtn.disabled=false; }
+    };
+    document.getElementById("savePersona").onclick=async()=>{
+      const fid=editPick.value;
+      const persona=editPersona.value.trim();
+      if(!fid){ setStatus("请选择手办", false); return; }
+      if(!persona){ setStatus("人设不能为空", false); return; }
+      const r=await fetch("/api/figures/"+fid+"/persona",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona})});
+      const d=await r.json();
+      if(!d.ok){ setStatus(d.error||"保存失败", false); return; }
+      setStatus("人设已保存到本机", true);
+      refresh();
+    };
+    loadSamples().then(refresh);
+  </script>
+</body>
+</html>

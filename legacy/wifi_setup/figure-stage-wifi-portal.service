@@ -1,0 +1,25 @@
+[Unit]
+Description=Figure Stage Wi-Fi setup portal (hotspot when offline)
+Documentation=file:///opt/figure-stage-wifi/README.md
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/figure-stage-wifi
+Environment=PYTHONUNBUFFERED=1
+# Optional overrides:
+# Environment=FS_WIFI_IFACE=wlan0
+# Environment=FS_HOTSPOT_SSID=FigureStage-Setup
+# Environment=FS_HOTSPOT_PASSWORD=figurestage
+# Environment=FS_WIFI_WAIT_SEC=20
+# Environment=FS_PORTAL_PORT=8080
+ExecStart=/usr/bin/python3 /opt/figure-stage-wifi/run_portal.py
+Restart=on-failure
+RestartSec=5
+# Exit 0 when already online or after successful connect — do not restart then
+SuccessExitStatus=0
+
+[Install]
+WantedBy=multi-user.target

@@ -12,6 +12,15 @@ yolo-env/
 .env
 .env.local
 .env.*.local
+device/config.env
+device/.camera.lock
+device/.fresh_stage_start
+device/.supervisor/
+device/figures_local.json
+device/prompts/*.wav
+device/prompts/*.mp3
+device/models/
+legacy/wifi_setup/__pycache__/
 
 # IDE
 .idea/
@@ -27,8 +36,6 @@ test_*.py
 stage_yolo.py
 stage_vision.py
 recordings/
-esp32-cloud/   # 已拆至独立仓库 figure-stage-esp32；若本地残留目录勿提交
-
 
 # Runtime / Pi
 captures/

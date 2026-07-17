@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wi‑Fi 配网</title>
+  <style>
+    :root { --bg:#0f1419; --panel:#1a222c; --text:#e8eef4; --muted:#8b9aab; --accent:#3d9cf0; --border:#2c3848; --ok:#3ecf8e; --err:#e85d5d; }
+    *{box-sizing:border-box} body{margin:0;font-family:"Segoe UI","PingFang SC",sans-serif;color:var(--text);background:var(--bg);padding:24px 16px}
+    .wrap{max-width:420px;margin:0 auto} a{color:var(--accent);text-decoration:none}
+    label{display:block;font-size:.8rem;color:var(--muted);margin:12px 0 6px}
+    select,input,button{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:1rem}
+    button{background:linear-gradient(180deg,#3d9cf0,#2a6fad);border:none;font-weight:600;margin-top:14px;cursor:pointer}
+    .status{margin-top:14px;color:var(--muted);font-size:.9rem;line-height:1.45} .ok{color:var(--ok)} .err{color:var(--err)}
+    .success{display:none;margin-top:18px;padding:16px;border-radius:12px;border:1px solid var(--ok);background:rgba(62,207,142,.08)}
+    .success h2{margin:0 0 8px;font-size:1.05rem;color:var(--ok)}
+    .success p{margin:0 0 12px;font-size:.88rem;color:var(--muted);line-height:1.45}
+    .success a.portal{display:block;font-size:1.15rem;font-weight:700;color:var(--ok);word-break:break-all;margin:8px 0}
+    .success .alt{font-size:.82rem;color:var(--muted);word-break:break-all}
+    .success ol{margin:10px 0 0;padding-left:1.2rem;font-size:.88rem;color:var(--muted);line-height:1.5}
+    #form-panel.hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="/">← 返回首页</a></p>
+    <div id="form-panel">
+      <h1>Wi‑Fi 配网</h1>
+      <p style="color:var(--muted);font-size:.88rem;line-height:1.45">
+        配网成功后热点会关闭，手机需改连<strong style="color:var(--text)">同一套家里 Wi‑Fi</strong>。
+        后续凭证、手办仍在<strong style="color:var(--text)">同一门户</strong>，只是地址变为 <code>figure-stage.local</code>。
+      </p>
+      <label>网络</label>
+      <select id="ssid"><option value="">扫描中…</option></select>
+      <button type="button" id="scan">刷新列表</button>
+      <label>手动 SSID（可选）</label>
+      <input id="ssid-manual" placeholder="列表没有时手动输入" />
+      <label>密码</label>
+      <input id="password" type="password" />
+      <button type="button" id="connect">连接</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="success" id="success-panel">
+      <h2 id="success-title">设备已连上 Wi‑Fi</h2>
+      <p id="success-detail"></p>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">请收藏此地址（以后都用它）：</p>
+      <a class="portal" id="success-url" href="/"></a>
+      <div class="alt" id="success-alt"></div>
+      <ol>
+        <li>手机断开热点，连上刚配置的同一 Wi‑Fi</li>
+        <li>点击上方地址，或浏览器输入该地址</li>
+        <li>在首页按「下一步」填凭证、注册手办</li>
+      </ol>
+      <button type="button" id="done" style="margin-top:16px">我已在同一 Wi‑Fi 下打开</button>
+    </div>
+  </div>
+  <script>
+    const statusEl=document.getElementById("status");
+    const sel=document.getElementById("ssid");
+    const formPanel=document.getElementById("form-panel");
+    const successPanel=document.getElementById("success-panel");
+
+    function showSuccess(d) {
+      const ns = d.next_step || {};
+      const portal = d.portal || {};
+      const home = ns.home_url || portal.home_url || "";
+      formPanel.classList.add("hidden");
+      successPanel.style.display = "block";
+      document.getElementById("success-title").textContent = ns.title || "请改用手机连同一 Wi‑Fi";
+      document.getElementById("success-detail").textContent =
+        (ns.detail || "") + (d.ssid ? "（已连：" + d.ssid + "）" : "");
+      const link = document.getElementById("success-url");
+      link.href = home;
+      link.textContent = home;
+      const alt = ns.lan_ip_url || portal.lan_ip_url;
+      document.getElementById("success-alt").textContent = alt ? ("备用 IP：" + alt) : "";
+    }
+
+    async function scan(){
+      statusEl.className="status";
+      statusEl.textContent="扫描中…";
+      try{
+        const r=await fetch("/api/wifi/scan"); const d=await r.json();
+        if(!d.ok) throw new Error(d.error||"扫描失败");
+        sel.innerHTML='<option value="">请选择…</option>';
+        (d.networks||[]).forEach(n=>{
+          const o=document.createElement("option"); o.value=n.ssid;
+          o.textContent=`${n.ssid} (${n.signal}%)`; sel.appendChild(o);
+        });
+        statusEl.textContent="选择网络后连接";
+      }catch(e){ statusEl.className="status err"; statusEl.textContent=e.message; }
+    }
+    document.getElementById("scan").onclick=scan;
+    document.getElementById("connect").onclick=async()=>{
+      const ssid=(document.getElementById("ssid-manual").value||sel.value).trim();
+      const password=document.getElementById("password").value;
+      if(!ssid){ statusEl.className="status err"; statusEl.textContent="请填写 SSID"; return; }
+      statusEl.className="status"; statusEl.textContent="连接中… 成功后热点会关闭";
+      try{
+        const r=await fetch("/api/wifi/connect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ssid,password})});
+        const d=await r.json();
+        if(!d.ok) throw new Error(d.error||"失败");
+        showSuccess(d);
+      }catch(e){ statusEl.className="status err"; statusEl.textContent=e.message; }
+    };
+    document.getElementById("done").onclick=()=>{ window.location.href = document.getElementById("success-url").href; };
+    scan();
+  </script>
+</body>
+</html>

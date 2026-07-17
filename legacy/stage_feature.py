@@ -27,6 +27,9 @@ from websockets.sync.client import connect
 
 from doubao_dialog import build_dialog
 from feature_embed import DINOv2Embedder, load_all_centroids, match_embedding
+from luckin_mcp import luckin_enabled
+from luckin_order import LuckinOrderSession, build_external_rag
+from luckin_pay_ui import present_payment
 
 VALID_TARGET_KEYS = frozenset({"bubu", "sea", "wdog", "ydog"})
 
@@ -160,6 +163,8 @@ EVENT_ASR_ENDED = 459
 EVENT_CHAT_RESPONSE = 550
 EVENT_TTS_ENDED = 359
 EVENT_DIALOG_ERROR = 599
+EVENT_CHAT_RAG_TEXT = 502
+EVENT_CLIENT_INTERRUPT = 515
 
 
 def generate_header(message_type=CLIENT_FULL_REQUEST, message_type_specific_flags=MSG_WITH_EVENT,
@@ -374,6 +379,9 @@ def doubao_ai_interaction(character, target_key):
     ws = None
     stop_flag = threading.Event()
     is_switch_exit = False
+    luckin_session = LuckinOrderSession() if luckin_enabled() else None
+    last_asr_text = ""
+    asr_text_lock = threading.Lock()
 
     try:
         ws = connect(
@@ -412,8 +420,57 @@ def doubao_ai_interaction(character, target_key):
             )
         )
 
+        def send_luckin_rag(speak: str) -> None:
+            # Interrupt default S2S reply so RAG-driven speech wins the turn
+            try:
+                ws.send(
+                    build_doubao_frame(
+                        CLIENT_FULL_REQUEST,
+                        EVENT_CLIENT_INTERRUPT,
+                        session_id,
+                        b"{}",
+                    )
+                )
+            except Exception:
+                pass
+            clear_play_buffer()
+            payload = json.dumps(
+                {"external_rag": build_external_rag(speak)},
+                ensure_ascii=False,
+            ).encode("utf-8")
+            ws.send(
+                build_doubao_frame(
+                    CLIENT_FULL_REQUEST,
+                    EVENT_CHAT_RAG_TEXT,
+                    session_id,
+                    payload,
+                )
+            )
+
+        def handle_luckin_async(text: str) -> None:
+            if not luckin_session:
+                return
+            action = luckin_session.handle_utterance(text)
+            if not action.handled or not action.speak:
+                return
+            speak = action.speak
+            if action.pay_url or action.pay_qr_url:
+                page = present_payment(
+                    pay_url=action.pay_url,
+                    pay_qr_url=action.pay_qr_url,
+                    speak=action.speak,
+                )
+                if page:
+                    speak = f"{action.speak} 手机打开 {page} 即可看到支付二维码。"
+            print(f"[Luckin] 将播报: {speak}", flush=True)
+            try:
+                send_luckin_rag(speak)
+                print("[Luckin] 已发送 ClientInterrupt + ChatRAGText", flush=True)
+            except Exception as e:
+                print(f"[Luckin] ChatRAGText 发送失败: {e}", flush=True)
+
         def recv():
-            nonlocal is_switch_exit
+            nonlocal is_switch_exit, last_asr_text
             while not stop_flag.is_set() and not switch_target_event.is_set():
                 try:
                     data = ws.recv(timeout=1)
@@ -446,14 +503,32 @@ def doubao_ai_interaction(character, target_key):
                             playback_suppressed.set()
                             with last_active_lock:
                                 last_active_time = time.time()
+                            with asr_text_lock:
+                                last_asr_text = ""
                         elif evt == EVENT_ASR_ENDED:
                             playback_suppressed.clear()
+                            with asr_text_lock:
+                                asr_final = last_asr_text.strip()
+                            if luckin_session and asr_final:
+                                threading.Thread(
+                                    target=handle_luckin_async,
+                                    args=(asr_final,),
+                                    daemon=True,
+                                ).start()
                         elif evt == EVENT_ASR_RESPONSE:
                             try:
-                                text = json.loads(pay)["results"][0]["text"]
+                                result = json.loads(pay)["results"][0]
+                                text = result.get("text", "")
                                 if text.strip():
                                     with last_active_lock:
                                         last_active_time = time.time()
+                                    # Prefer final (non-interim) transcript; keep latest otherwise
+                                    if not result.get("is_interim", True):
+                                        with asr_text_lock:
+                                            last_asr_text = text
+                                    else:
+                                        with asr_text_lock:
+                                            last_asr_text = text
                             except Exception:
                                 pass
                         elif evt == EVENT_CHAT_RESPONSE:
@@ -741,6 +816,10 @@ def main():
     print("配置: .env / 环境变量")
     print("本地: 画面变化 + DINOv2  |  语音: 豆包 Realtime")
     print(f"registry={FEATURE_REGISTRY_DIR}  score>={FEATURE_MIN_SCORE}  margin>={FEATURE_MIN_MARGIN}")
+    if luckin_enabled():
+        print("瑞幸点单: 已启用（ASR → MCP → ChatRAGText，确认后才下单）")
+    else:
+        print("瑞幸点单: 未启用（设 LUCKIN_ENABLED=true 并填写 LUCKIN_TOKEN / 经纬度）")
     pysignal.signal(pysignal.SIGINT, signal_handler)
     pysignal.signal(pysignal.SIGTERM, signal_handler)
 

@@ -1,0 +1,22 @@
+[Unit]
+Description=Figure Stage device supervisor (portal, hotspot, stage)
+After=NetworkManager.service sound.target
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/figure-stage/device
+Environment=PYTHONUNBUFFERED=1
+# Optional:
+# Environment=FS_WIFI_WAIT_SEC=20
+# Environment=FS_SUPERVISOR_POLL_SEC=2
+# Environment=FS_AUTO_STAGE=true
+# Environment=FS_PORTAL_PORT=8080
+# Environment=FS_PROMPTS_DIR=/home/pi/figure-stage/device/prompts
+ExecStart=/home/pi/figure-stage/device/.venv/bin/python -m supervisor
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

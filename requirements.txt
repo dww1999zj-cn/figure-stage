@@ -1,7 +1,2 @@
-picamera2
-opencv-python-headless
-sounddevice
-scipy
-websockets
-numpy
-onnxruntime
+# 客户端依赖（设备端）
+-r device/requirements.txt

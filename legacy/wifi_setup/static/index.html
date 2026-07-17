@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Figure Stage 配网</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e8eef4;
+      --muted: #8b9aab;
+      --accent: #3d9cf0;
+      --accent-dim: #2a6fad;
+      --danger: #e85d5d;
+      --ok: #3ecf8e;
+      --border: #2c3848;
+      --radius: 12px;
+      --font: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, transparent 55%),
+        var(--bg);
+      padding: 24px 16px 40px;
+    }
+    .wrap {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 650;
+      letter-spacing: 0.02em;
+      margin: 0 0 6px;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 22px;
+      line-height: 1.45;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .field { margin-bottom: 16px; }
+    select, input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+    select:focus, input:focus {
+      border-color: var(--accent);
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .row select { flex: 1; }
+    button {
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 12px 16px;
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn-scan {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+      color: #fff;
+      margin-top: 8px;
+      padding: 14px;
+    }
+    .status {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      min-height: 1.4em;
+      color: var(--muted);
+    }
+    .status.ok { color: var(--ok); border-color: #2a6b4e; }
+    .status.err { color: var(--danger); border-color: #6b2a2a; }
+    .status.busy { color: #c9d8e8; }
+    .manual {
+      margin-top: 8px;
+      font-size: 0.85rem;
+    }
+    .manual a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    #manual-ssid { display: none; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Figure Stage 配网</h1>
+    <p class="sub">选择家里的 Wi‑Fi 并输入密码。成功后热点会关闭，设备自动连上网。</p>
+
+    <form id="form" autocomplete="off">
+      <div class="field">
+        <label for="ssid">Wi‑Fi 名称</label>
+        <div class="row">
+          <select id="ssid" name="ssid" required>
+            <option value="">扫描中…</option>
+          </select>
+          <button type="button" class="btn-scan" id="scan-btn">刷新</button>
+        </div>
+        <div class="manual">
+          <a href="#" id="toggle-manual">手动输入 SSID</a>
+        </div>
+        <div id="manual-ssid">
+          <label for="ssid-manual">SSID</label>
+          <input type="text" id="ssid-manual" placeholder="输入 Wi‑Fi 名称" maxlength="32" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" placeholder="开放网络可留空" maxlength="64" />
+      </div>
+
+      <button type="submit" class="btn-primary" id="submit-btn">连接</button>
+    </form>
+
+    <div class="status" id="status">正在扫描附近网络…</div>
+  </div>
+
+  <script>
+    const ssidSel = document.getElementById("ssid");
+    const ssidManual = document.getElementById("ssid-manual");
+    const manualBox = document.getElementById("manual-ssid");
+    const toggleManual = document.getElementById("toggle-manual");
+    const passwordEl = document.getElementById("password");
+    const statusEl = document.getElementById("status");
+    const scanBtn = document.getElementById("scan-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const form = document.getElementById("form");
+    let useManual = false;
+    let pollTimer = null;
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function fillNetworks(networks) {
+      const prev = ssidSel.value;
+      ssidSel.innerHTML = "";
+      if (!networks.length) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "未扫到网络，可手动输入";
+        ssidSel.appendChild(opt);
+        return;
+      }
+      const ph = document.createElement("option");
+      ph.value = "";
+      ph.textContent = "请选择…";
+      ssidSel.appendChild(ph);
+      for (const n of networks) {
+        const opt = document.createElement("option");
+        opt.value = n.ssid;
+        const sec = n.security && n.security !== "--" ? n.security : "开放";
+        opt.textContent = n.ssid + "  (" + n.signal + "% · " + sec + ")";
+        ssidSel.appendChild(opt);
+      }
+      if (prev && [...ssidSel.options].some(o => o.value === prev)) {
+        ssidSel.value = prev;
+      }
+    }
+
+    async function scan() {
+      scanBtn.disabled = true;
+      setStatus("正在扫描附近网络…", "busy");
+      try {
+        const res = await fetch("/api/scan");
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "扫描失败");
+        fillNetworks(data.networks || []);
+        setStatus("选择网络后输入密码并连接。", "");
+      } catch (e) {
+        fillNetworks([]);
+        setStatus("扫描失败：" + e.message + "。可改用手动输入。", "err");
+      } finally {
+        scanBtn.disabled = false;
+      }
+    }
+
+    toggleManual.addEventListener("click", (e) => {
+      e.preventDefault();
+      useManual = !useManual;
+      manualBox.style.display = useManual ? "block" : "none";
+      ssidSel.required = !useManual;
+      toggleManual.textContent = useManual ? "从列表选择" : "手动输入 SSID";
+    });
+
+    async function pollStatus() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        if (data.busy) {
+          setStatus(data.message || "正在连接…", "busy");
+          submitBtn.disabled = true;
+          return;
+        }
+        submitBtn.disabled = false;
+        if (data.ok === true) {
+          setStatus((data.message || "连接成功") + "。热点即将关闭，请切回家里的 Wi‑Fi。", "ok");
+          if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        } else if (data.ok === false) {
+          setStatus(data.message || "连接失败", "err");
+          if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        }
+      } catch (_) { /* ignore while AP may drop */ }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const ssid = (useManual ? ssidManual.value : ssidSel.value).trim();
+      const password = passwordEl.value;
+      if (!ssid) {
+        setStatus("请填写 Wi‑Fi 名称", "err");
+        return;
+      }
+      submitBtn.disabled = true;
+      setStatus("已提交，正在连接…", "busy");
+      try {
+        const res = await fetch("/api/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ssid, password }),
+        });
+        const data = await res.json();
+        if (!res.ok && !data.ok) {
+          setStatus(data.error || "提交失败", "err");
+          submitBtn.disabled = false;
+          return;
+        }
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(pollStatus, 1500);
+        pollStatus();
+      } catch (err) {
+        setStatus("请求失败：" + err.message, "err");
+        submitBtn.disabled = false;
+      }
+    });
+
+    scanBtn.addEventListener("click", scan);
+    scan();
+  </script>
+</body>
+</html>

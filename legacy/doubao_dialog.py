@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from luckin_order import luckin_system_hint
+
 
 def _truthy(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in ("1", "true", "yes", "on")
@@ -48,9 +50,14 @@ def build_dialog_extra(*, enable_music: bool = True) -> dict[str, Any]:
 
 
 def build_dialog(character: dict, *, enable_music: bool = True) -> dict[str, Any]:
+    system_role = character["prompt"]
+    hint = luckin_system_hint()
+    if hint:
+        system_role = f"{system_role}\n{hint}"
+
     dialog: dict[str, Any] = {
         "bot_name": character["name"],
-        "system_role": character["prompt"],
+        "system_role": system_role,
         "speaking_style": character["speaking_style"],
         "extra": build_dialog_extra(enable_music=enable_music),
     }
