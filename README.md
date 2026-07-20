@@ -122,6 +122,12 @@ sudo systemctl enable --now figure-stage
 
 ---
 
-## License
+## 许可
 
-MIT · 见 `TRADEMARK.md` / `COMMERCIAL.md`
+| 文档 | 说明 |
+|------|------|
+| [LICENSE](LICENSE) | 非商业免费 |
+| [COMMERCIAL.md](COMMERCIAL.md) | 商用联系 dww1999zj@gmail.com |
+| [TRADEMARK.md](TRADEMARK.md) | 项目名称规则 |
+
+许可人：**dww1999zj-cn**
