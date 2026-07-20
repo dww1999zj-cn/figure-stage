@@ -14,7 +14,7 @@
 
 ---
 
-## 架构（必读）
+## 架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -43,15 +43,29 @@
 
 ---
 
+## 门户与配网地址
+
+| 场景 | 怎么连 | 打开 |
+|------|--------|------|
+| Pi 未连家里 Wi‑Fi（热点配网） | 手机连 Wi‑Fi：`FigureStage-Setup`，密码 `figurestage` | **http://10.42.0.1:8080/** |
+| Pi 已联网 | 手机与 Pi 同一 Wi‑Fi | **http://figure-stage.local:8080/** 或 `http://<Pi局域网IP>:8080/` |
+
+配网成功后热点会关闭，手机需改连家里 Wi‑Fi，再用 `.local` 地址。
+
+门户页：`/wifi` 配网 · `/credentials` 云与豆包凭证 · `/figures` 注册手办。
+
+---
+
 ## 仓库结构
 
 | 路径 | 说明 |
 |------|------|
 | **[`device/`](device/)** | 门户 + 监督进程 + 薄舞台 + systemd（主目录） |
+| [`device/prompts/`](device/prompts/) | 开机 / 配网 / 空台等提示音（已含 WAV） |
 | [`legacy/`](legacy/) | 旧本机识别原型归档，勿当新装路径 |
 | [`assets/`](assets/) | 宣传图 |
 
-日常只操作 **`device/`**。从 SD 卡到开机自启的细节与排障见 **[`device/README.md`](device/README.md)**。
+日常只操作 **`device/`**。安装与排障细节见 [`device/README.md`](device/README.md)。
 
 ---
 
@@ -61,12 +75,11 @@
 
 1. 运营方提供的 **`CLOUD_BASE_URL`** + **`DEVICE_CLOUD_TOKEN`**（与云端约定一致，**勿自造**）
 2. 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY`
-3. （可选）提示音 WAV：见 `device/prompts/README.md`
 
 ### 硬件（已验证：Pi 5）
 
 - Raspberry Pi 5 + 官方或兼容电源
-- CSI 摄像头 **imx219**（需改 `config.txt`，见 `device/README.md`）
+- CSI 摄像头 **imx219**（`config.txt` 需 `dtoverlay=imx219,cam0`）
 - USB 声卡（播放 + 麦克；勿默认走 HDMI）
 - 可选：网线（断 Wi‑Fi 测热点时仍能 SSH）
 
@@ -92,26 +105,23 @@
 ```bash
 cd device
 python3 -m venv .venv && source .venv/bin/activate
-# 大包优先 apt，再 pip 小包 —— 详见 device/README.md
+# 大包优先 apt，再 pip 小包 —— 见 device/README.md
 pip install -r requirements.txt
 cp config.example.env config.env   # 或稍后用门户填写
 
-# 自备 prompts/*.wav 后：
 sudo bash install.sh
 sudo systemctl enable --now figure-stage
 ```
 
-门户（已联网）：**http://figure-stage.local:8080/**  
+开机后按上面「门户与配网地址」打开网页，填凭证并注册手办。  
 状态：`GET /api/status` → `phase` 应为 `stage_ready`。
-
-完整从 SD 卡到自启：**务必读 [`device/README.md`](device/README.md)**。
 
 ---
 
 ## 运行时行为摘要
 
 1. **开机** → `figure-stage.service` → `python -m supervisor`
-2. 等 Wi‑Fi（默认 20s）→ 无网则开热点 `FigureStage-Setup` / `figurestage`，门户 `http://10.42.0.1:8080/`
+2. 等 Wi‑Fi（默认 20s）→ 无网则开热点 `FigureStage-Setup` / `figurestage`，门户 **http://10.42.0.1:8080/**
 3. 无网提示音 **同一次离线只播一次**（不是循环念）
 4. 凭证 + ≥1 手办 → 自动起舞台；注册后会空台等待 + 启动扫描
 5. 聊完手办不移开 → **喊注册名**唤醒（不上 60s 视觉自动再开聊）；空台 / 未识别物体喊名字无效

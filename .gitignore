@@ -17,8 +17,6 @@ device/.camera.lock
 device/.fresh_stage_start
 device/.supervisor/
 device/figures_local.json
-device/prompts/*.wav
-device/prompts/*.mp3
 device/models/
 legacy/wifi_setup/__pycache__/
 
@@ -42,6 +40,7 @@ captures/
 docs/
 logs/
 *.wav
+!device/prompts/*.wav
 *.pcm
 *.pt
 *.onnx

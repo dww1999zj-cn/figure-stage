@@ -15,7 +15,7 @@ device/
 ├── requirements.txt
 ├── install.sh              # 安装 systemd
 ├── figure-stage.service
-├── prompts/                # 自备 WAV（*.wav 不进 git）
+├── prompts/                # 提示音 WAV（随仓库）
 │   └── README.md
 ├── portal/                 # HTTP 门户 :8080
 │   ├── server.py
@@ -145,9 +145,9 @@ pip install httpx sounddevice websockets -i https://pypi.tuna.tsinghua.edu.cn/si
 python -c "import picamera2, cv2, httpx, sounddevice, websockets; print('OK')"
 ```
 
-### 3.3 提示音（自备）
+### 3.3 提示音
 
-放到 `device/prompts/`（文件名固定）：
+仓库已含 `device/prompts/*.wav`（随代码同步即可）。文件名：
 
 | 文件 | 何时 |
 |------|------|
@@ -156,11 +156,7 @@ python -c "import picamera2, cv2, httpx, sounddevice, websockets; print('OK')"
 | `stage_ready.wav` | 可选，全部就绪 |
 | `stage_empty_baseline.wav` | 可选，舞台采空台前 |
 
-见 `prompts/README.md`。可用 SCP：
-
-```powershell
-scp "*.wav" pi@figure-stage.local:~/figure-stage/device/prompts/
-```
+见 `prompts/README.md`。
 
 ### 3.4 配置
 
@@ -309,7 +305,7 @@ FS_NAME_WAKE=true
 | **不要**从 Windows 覆盖 Pi 的 `.venv` | Pi 需 Linux venv |
 | **不要**随意覆盖 Pi 的 `config.env` | 里面有 Token / DEVICE_ID |
 | `config.example.env` | 可覆盖，作模板参考 |
-| WAV | 单独 scp 到 `prompts/` |
+| 提示音 | 已在 `device/prompts/`，随代码同步 |
 
 ---
 
@@ -344,7 +340,7 @@ ps aux | grep -E 'supervisor|run_stage' | grep -v grep
 - [ ] `config.txt`：imx219；`rpicam-hello` 可见
 - [ ] NetworkManager；USB 声卡 + `asound.conf` + `AUDIO_DEVICE_ID`
 - [ ] 部署 `device/`；建 **Pi 本地** `.venv` + system-packages.pth
-- [ ] 自备 2～4 个 `prompts/*.wav`
+- [ ] `prompts/*.wav` 已随仓库就位
 - [ ] 运营方下发云 URL + Token；门户填豆包
 - [ ] 注册 ≥1 手办（名称短清晰）
 - [ ] `sudo bash install.sh` && `enable --now figure-stage`
