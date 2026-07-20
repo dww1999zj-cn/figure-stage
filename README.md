@@ -113,8 +113,8 @@ sudo bash install.sh
 sudo systemctl enable --now figure-stage
 ```
 
-开机后按上面「门户与配网地址」打开网页，填凭证并注册手办。  
-状态：`GET /api/status` → `phase` 应为 `stage_ready`。
+开机后按上面「门户与配网地址」打开网页：配好 Wi‑Fi → 填云与豆包凭证 → 至少注册 1 只手办。  
+都齐了之后，设备会**自动开始舞台**（空台采背景、放手办即可对话）；门户首页也会显示已就绪。
 
 ---
 
