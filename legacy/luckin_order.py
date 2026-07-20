@@ -181,7 +181,7 @@ class LuckinOrderSession:
                 _log("分支=已下单后再次确认 → 提醒去支付")
                 return OrderAction(
                     handled=True,
-                    speak="订单已创建。请用手机打开支付页扫码付款；付完后可以说「查取餐码」。",
+                    speak="订单已创建。请在瑞幸 App 里完成付款；付完后可以说「查取餐码」。",
                     pay_url=self.last_pay_url,
                     pay_qr_url=self.last_pay_qr_url,
                 )
@@ -364,7 +364,7 @@ class LuckinOrderSession:
             price_part = f"原价约{initial}元，{price_part}"
         speak = (
             f"预览好了：{dept_name}，{amount}杯{product_name}，{price_part}，到店自取。"
-            f"请说「确认下单」或「确认订单」继续，或说「取消」。支付需手机扫码。"
+            f"请说「确认下单」或「确认订单」继续，或说「取消」。下单后请在瑞幸 App 付款。"
         )
         _log(
             f"★★ 预览完成 → state=await_confirm | {product_name} | "
@@ -431,7 +431,7 @@ class LuckinOrderSession:
             parts.append(f"订单号{order_id}")
         speak = (
             "，".join(parts)
-            + "。请用手机打开支付页扫码付款；付完后可以说「查取餐码」。"
+            + "。请在瑞幸 App 里完成付款；付完后可以说「查取餐码」。"
         )
         if not self.last_pay_url and not self.last_pay_qr_url:
             speak += "（未返回支付信息，请打开瑞幸 App 查看待支付订单。）"

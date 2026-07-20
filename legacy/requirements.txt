@@ -6,5 +6,4 @@ websockets
 numpy
 onnxruntime
 httpx
-qrcode
 Pillow

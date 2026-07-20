@@ -29,7 +29,6 @@ from doubao_dialog import build_dialog
 from feature_embed import DINOv2Embedder, load_all_centroids, match_embedding
 from luckin_mcp import luckin_enabled
 from luckin_order import LuckinOrderSession, build_external_rag
-from luckin_pay_ui import present_payment
 
 VALID_TARGET_KEYS = frozenset({"bubu", "sea", "wdog", "ydog"})
 
@@ -454,14 +453,6 @@ def doubao_ai_interaction(character, target_key):
             if not action.handled or not action.speak:
                 return
             speak = action.speak
-            if action.pay_url or action.pay_qr_url:
-                page = present_payment(
-                    pay_url=action.pay_url,
-                    pay_qr_url=action.pay_qr_url,
-                    speak=action.speak,
-                )
-                if page:
-                    speak = f"{action.speak} 手机打开 {page} 即可看到支付二维码。"
             print(f"[Luckin] 将播报: {speak}", flush=True)
             try:
                 send_luckin_rag(speak)
