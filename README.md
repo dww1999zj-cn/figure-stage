@@ -8,6 +8,10 @@
   <img src="assets/figure-stage-promo.jpg" width="900" alt="手办舞台 Figure Stage" />
 </p>
 
+<p align="center">
+  <img src="assets/stage-empty.jpg" width="480" alt="实物空舞台" />
+</p>
+
 ---
 
 ## 架构（必读）
