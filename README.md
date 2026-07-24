@@ -1,7 +1,7 @@
 # 手办舞台 Figure Stage
 
-舞台摄像头识别台上手办 → 采集帧云端匹配手办注册的视觉特征 → 舞台连实时语音API手办聊天、唱歌、点咖啡（瑞幸MCP）。  
-可随时切换手办开启新聊天，聊完手办不移开时，可再唤醒手办。
+  舞台摄像头识别台上手办 → 采集帧云端匹配手办注册的视觉特征 → 舞台连实时语音API手办聊天、唱歌、点咖啡（瑞幸MCP）。  
+  可随时切换手办开启新聊天，聊完手办不移开时，可再唤醒手办。
 
 
 
@@ -19,8 +19,8 @@
 
 ## 复刻前先读这三句
 
-1. **请只部署 [`device/`](device/)**（拷贝该目录即可，不必整仓 clone）；不要用 [`legacy/`](legacy/)（旧本机识别归档）。  
-2. **必须有识别云**：本仓库是设备端，视觉特征在云上算。你需要别人给你的 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（或自建云服务）。**没有云地址时，舞台无法识别手办。**  
+1. **请只部署 [`device/`](device/)**（拷贝该目录即可，可以不整仓 clone）； 
+2. **必须有识别云**：本仓库是设备端，视觉特征在云上算。联系作者分配 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（或可以自建云服务）。**没有云地址时，舞台无法识别手办。**  
 3. **完整命令、排障、摄像头细节**在 **[`device/README.md`](device/README.md)**；下面是「从零到第一次开口」的最短路径。
 
 ---
@@ -53,7 +53,7 @@
 
 | 需要 | 从哪来 |
 |------|--------|
-| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 项目作者下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
+| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 联系项目作者下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
 | 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY` | [火山引擎语音](https://console.volcengine.com/speech/app) 申请开通**端到端实时语音** |
 
 <p align="center">
@@ -80,11 +80,9 @@
 ### 2. 拿到代码（可仅同步 `device/`）
 
 
-
+下载 `device/`目录到开发机并同步到树莓派
 从 Windows 用 SCP / WinSCP 示例：
 
-```powershell
-# 在开发机仓库根目录执行；不要带 Windows 的 .venv、不要覆盖 Pi 上已有的 config.env
 scp -r device pi@figure-stage.local:~/figure-stage/
 ```
 
