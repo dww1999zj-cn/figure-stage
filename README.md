@@ -30,7 +30,7 @@
 | 能力 | 说明 |
 |------|------|
 | 上台对话 | 放手办 → 云识别 → 实时语音 |
-| 手机门户 | 配网 / 凭证 / 注册，地址见下文 |
+| 手机门户 | 配网 / 语音对话模型API / 注册，地址见下文 |
 | 开机自启 | systemd：`figure-stage` |
 | 名字唤醒 | 闲时喊台上该手办的注册名 |
 | 断网配网 | 自动热点 + 提示音（仓库已含 wav） |
@@ -53,8 +53,8 @@
 
 | 需要 | 从哪来 |
 |------|--------|
-| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 云运营方下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
-| 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY` | [火山引擎语音](https://console.volcengine.com/speech/app) 开通**端到端实时语音** |
+| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 项目作者下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
+| 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY` | [火山引擎语音](https://console.volcengine.com/speech/app) 申请开通**端到端实时语音** |
 
 <p align="center">
   <img src="assets/stage-inside.jpg" width="520" alt="舞台底座内部接线参考" />
@@ -77,9 +77,9 @@
 - 建议主机名：`figure-stage`（方便用 `figure-stage.local`）  
 - 能 SSH 或本地终端操作即可  
 
-### 2. 拿到代码（只需 `device/`）
+### 2. 拿到代码（可仅同步 `device/`）
 
-复刻**不必**整仓 `git clone`。在 Pi 上准备目录，例如 `~/figure-stage/device/`，把仓库里的 **`device/` 整份拷过去**即可（门户、监督进程、舞台、提示音、`install.sh` 都在里面）。
+
 
 从 Windows 用 SCP / WinSCP 示例：
 
@@ -88,7 +88,7 @@
 scp -r device pi@figure-stage.local:~/figure-stage/
 ```
 
-若坚持用 Git：
+若用 Git：
 
 ```bash
 cd ~
@@ -96,7 +96,7 @@ git clone https://github.com/dww1999zj-cn/figure-stage.git
 # 日常也只操作 ~/figure-stage/device
 ```
 
-**不要**拷：开发机上的 `device/.venv`、`device/config.env`（若 Pi 上已配好凭证）。  
+
 **建议拷**：`device/` 下源码、`prompts/*.wav`、`config.example.env`、`install.sh`、`requirements.txt` 等。
 ### 3. 打开摄像头（必做，否则识别失败）
 
@@ -120,7 +120,7 @@ rpicam-hello --list-cameras
 
 ### 4. 安装依赖并自启
 
-详细说明（apt 大包、venv 链到系统 picamera2 等）见 [`device/README.md`](device/README.md) 第 3 节。精简版：
+
 
 ```bash
 cd ~/figure-stage/device
@@ -146,21 +146,21 @@ sudo bash install.sh
 sudo systemctl enable --now figure-stage
 ```
 
-提示音已在 `device/prompts/*.wav`，一般不用再拷。
+提示音在 `device/prompts/*.wav`。
 
 ### 5. 手机打开门户
 
 | 场景 | 操作 | 地址 |
 |------|------|------|
-| Pi 还没连家里 Wi‑Fi | 手机连热点 `FigureStage-Setup`，密码 `figurestage` | **http://10.42.0.1:8080/** |
-| Pi 已在家里网 | 手机连同一 Wi‑Fi | **http://figure-stage.local:8080/** |
+| Pi 未连网 | 手机连热点 `FigureStage-Setup`，密码 `figurestage`配网 | **http://10.42.0.1:8080/** |
+| Pi 已联网 | 手机连同一 Wi‑Fi | **http://figure-stage.local:8080/** |
 
 配网成功后热点会关，手机请改连家里 Wi‑Fi，再收藏 `.local` 地址。
 
 按首页提示依次：
 
 1. **Wi‑Fi**（若还在热点）  
-2. **凭证**：填云地址 + Token + 豆包三项；声卡编号用下面命令查  
+2. **填写凭证**：填云地址 + Token + 豆包key三项；声卡编号用下面命令查  
 
 ```bash
 cd ~/figure-stage/device && source .venv/bin/activate
@@ -187,33 +187,16 @@ sudo journalctl -u figure-stage -f
 
 ---
 
-## 架构（了解即可）
 
-```
-树莓派 device/  ──HTTPS+Token──►  识别云（只存特征/清单）
-  supervisor → 门户 :8080 + 自动启停舞台
-  舞台：触发采帧 → 云识别 → 本机实时语音 → 名字唤醒
-```
-
-| 数据 | 存在哪 |
-|------|--------|
-| 视觉特征、手办名、音色预设 | 识别云 |
-| 人设 | 本机 `device/figures_local.json` |
-| 密钥 / DEVICE_ID | 本机 `device/config.env`（门户可改） |
-
-仓库结构：日常只动 **`device/`**；`legacy/` 为旧本机识别归档。
-
----
-
-## 常见卡点（复刻时）
+## 常见卡点
 
 | 现象 | 先查 |
 |------|------|
 | `No cameras available` | `dtoverlay=imx219,cam0`，`rpicam-hello --list-cameras` |
 | 门户打不开 | 热点用 `10.42.0.1`；联网用 `.local` 或 `hostname -I` |
 | 有声卡但无声 / Device busy | `/etc/asound.conf` 指 USB；`AUDIO_DEVICE_ID` 是否对 |
-| 认不出手办 | 是否已填对云 Token；注册与运行机位/光线是否接近 |
-| 没有云地址 | 本仓库无法单独完成识别；需运营方云或自建兼容 API |
+| 认不出手办 | 是否已填对云 Token；注册与运行背景/光线是否接近 |
+| 没有云地址 | 本仓库无法单独完成注册、识别；需使用云（联系作者提供）或自建兼容 API |
 
 ---
 
