@@ -28,12 +28,14 @@ legacy/wifi_setup/__pycache__/
 # 本地大图备份（README 用压缩 jpg）
 assets/*.orig.png
 assets/*-social.jpg
+!assets/figure-stage-social.jpg
 
 # Dev / test / 其它识别方案（本地保留，不上传 GitHub）
 test_*.py
 stage_yolo.py
 stage_vision.py
 recordings/
+posts/
 
 # Runtime / Pi
 captures/

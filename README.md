@@ -1,8 +1,10 @@
 # 手办舞台 Figure Stage（设备端）
 
-桌面固定摄像头识别手办 → **云端**算视觉特征 → **本机**连豆包 Realtime 开口对话。
+桌面固定摄像头识别手办 → **云端**算视觉特征 → **本机**连实时语音开口对话。  
+聊完手办不移开时，可**喊注册名**再唤醒。
 
-**豆包 / 瑞幸等密钥只保存在设备本地**（门户网页填写），不会上传到识别云。
+手机打开一个网页就能完成配网、填写凭证、注册手办。  
+**语音等密钥只保存在设备本地**（门户填写），不会上传到识别云。
 
 <p align="center">
   <img src="assets/figure-stage-promo.jpg" width="900" alt="手办舞台 Figure Stage" />
@@ -12,136 +14,224 @@
   <img src="assets/stage-empty.jpg" width="480" alt="实物空舞台" />
 </p>
 
----
-
-## 架构
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  树莓派 device/                                              │
-│  supervisor（systemd）                                        │
-│    ├─ 热点配网 + HTTP 门户 :8080                              │
-│    ├─ 提示音 prompts/*.wav                                    │
-│    └─ 自动启停 stage/run_stage.py                             │
-│         ├─ 画面变化 / 启动扫描 → 云识别                        │
-│         ├─ 豆包 Realtime 对话（密钥本地）                       │
-│         └─ 名字唤醒：本地 VAD + 豆包短句 ASR（轻流量）          │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ HTTPS + Bearer Token
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│  识别云服务（由运营方提供 URL 与 Token）                        │
-│  仅存视觉特征 / 清单；不存豆包密钥、不存人设全文                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-| 数据 | 存在哪 |
-|------|--------|
-| 视觉特征、手办名、音色预设 | 识别云（按 `DEVICE_ID` 隔离） |
-| 人设 persona | 本机 `device/figures_local.json` |
-| 豆包 / 云 Token / DEVICE_ID | 本机 `device/config.env` |
+本仓库是**设备端**：树莓派上的门户、监督进程与薄舞台。视觉特征在识别云；人设与密钥在本机。复刻时请只部署 [`device/`](device/)（拷贝该目录即可）。
 
 ---
 
-## 门户与配网地址
+## 复刻前先读这三句
 
-| 场景 | 怎么连 | 打开 |
-|------|--------|------|
-| Pi 未连家里 Wi‑Fi（热点配网） | 手机连 Wi‑Fi：`FigureStage-Setup`，密码 `figurestage` | **http://10.42.0.1:8080/** |
-| Pi 已联网 | 手机与 Pi 同一 Wi‑Fi | **http://figure-stage.local:8080/** 或 `http://<Pi局域网IP>:8080/` |
-
-配网成功后热点会关闭，手机需改连家里 Wi‑Fi，再用 `.local` 地址。
-
-门户页：`/wifi` 配网 · `/credentials` 云与豆包凭证 · `/figures` 注册手办。
+1. **请只部署 [`device/`](device/)**（拷贝该目录即可，不必整仓 clone）；不要用 [`legacy/`](legacy/)（旧本机识别归档）。  
+2. **必须有识别云**：本仓库是设备端，视觉特征在云上算。你需要别人给你的 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（或自建云服务）。**没有云地址时，舞台无法识别手办。**  
+3. **完整命令、排障、摄像头细节**在 **[`device/README.md`](device/README.md)**；下面是「从零到第一次开口」的最短路径。
 
 ---
 
-## 仓库结构
+## 你将得到什么
 
-| 路径 | 说明 |
+| 能力 | 说明 |
 |------|------|
-| **[`device/`](device/)** | 门户 + 监督进程 + 薄舞台 + systemd（主目录） |
-| [`device/prompts/`](device/prompts/) | 开机 / 配网 / 空台等提示音（已含 WAV） |
-| [`legacy/`](legacy/) | 旧本机识别原型归档，勿当新装路径 |
-| [`assets/`](assets/) | 宣传图 |
-
-日常只操作 **`device/`**。安装与排障细节见 [`device/README.md`](device/README.md)。
+| 上台对话 | 放手办 → 云识别 → 实时语音 |
+| 手机门户 | 配网 / 凭证 / 注册，地址见下文 |
+| 开机自启 | systemd：`figure-stage` |
+| 名字唤醒 | 闲时喊台上该手办的注册名 |
+| 断网配网 | 自动热点 + 提示音（仓库已含 wav） |
 
 ---
 
-## 你需要准备什么
+## 物料清单（已验证：Pi 5）
 
-### 软件 / 账号
+| 物料 | 备注 |
+|------|------|
+| Raspberry Pi 5 + 合格电源 | 建议 4GB+；Pi 3 不推荐 |
+| microSD（刷 64-bit Raspberry Pi OS） | 建议 Bookworm |
+| IMX219 CSI 摄像头 | **必须**改 `config.txt`，见步骤 3 |
+| USB 声卡 + 麦克风 + 扬声器 | 不要默认走 HDMI |
+| 固定展示台 / 支架 | 注册与运行机位尽量一致 |
+| （可选）网线 | 断 Wi‑Fi 测热点时仍能 SSH |
+| （可选）同款 3D 舞台文件 | 微信 alex_198888 |
 
-1. 运营方提供的 **`CLOUD_BASE_URL`** + **`DEVICE_CLOUD_TOKEN`**（与云端约定一致，**勿自造**）
-2. 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY`
+**账号（软件）：**
 
-### 硬件（已验证：Pi 5）
-
-- Raspberry Pi 5 + 官方或兼容电源
-- CSI 摄像头 **imx219**（`config.txt` 需 `dtoverlay=imx219,cam0`）
-- USB 声卡（播放 + 麦克；勿默认走 HDMI）
-- 可选：网线（断 Wi‑Fi 测热点时仍能 SSH）
-
-**舞台内部接线（参考）**
+| 需要 | 从哪来 |
+|------|--------|
+| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 云运营方下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
+| 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY` | [火山引擎语音](https://console.volcengine.com/speech/app) 开通**端到端实时语音** |
 
 <p align="center">
-  <img src="assets/stage-inside.jpg" width="520" alt="舞台底座内部：树莓派、摄像头、USB 声卡与扬声器接线" />
+  <img src="assets/stage-inside.jpg" width="520" alt="舞台底座内部接线参考" />
 </p>
 
 | 部件 | 接法 |
 |------|------|
 | 树莓派 | USB-C 供电 |
-| IMX219 摄像头 | CSI 排线 → Pi 摄像头接口 |
-| USB 声卡 | 插入 Pi USB 口（`config.env` 中 `AUDIO_DEVICE_ID` 选此设备） |
-| 麦克风 | 接 USB 声卡输入 |
-| 扬声器 | 红黑线 → USB 声卡 / 功放输出 |
-| 舞台架 | 3D 打印；如需同款建模文件，可联系微信：alex_198888 |
+| IMX219 | CSI → Pi 摄像头口 |
+| USB 声卡 | Pi USB |
+| 麦 / 喇叭 | 接声卡 |
 
 ---
 
-## 快速路径（已有云地址 + 已刷系统）
+## 从零到第一次对话（推荐顺序）
+
+### 1. 刷系统并联网
+
+- 刷入 Raspberry Pi OS（64-bit）  
+- 建议主机名：`figure-stage`（方便用 `figure-stage.local`）  
+- 能 SSH 或本地终端操作即可  
+
+### 2. 拿到代码（只需 `device/`）
+
+复刻**不必**整仓 `git clone`。在 Pi 上准备目录，例如 `~/figure-stage/device/`，把仓库里的 **`device/` 整份拷过去**即可（门户、监督进程、舞台、提示音、`install.sh` 都在里面）。
+
+从 Windows 用 SCP / WinSCP 示例：
+
+```powershell
+# 在开发机仓库根目录执行；不要带 Windows 的 .venv、不要覆盖 Pi 上已有的 config.env
+scp -r device pi@figure-stage.local:~/figure-stage/
+```
+
+若坚持用 Git：
 
 ```bash
-cd device
-python3 -m venv .venv && source .venv/bin/activate
-# 大包优先 apt，再 pip 小包 —— 见 device/README.md
-pip install -r requirements.txt
-cp config.example.env config.env   # 或稍后用门户填写
+cd ~
+git clone https://github.com/dww1999zj-cn/figure-stage.git
+# 日常也只操作 ~/figure-stage/device
+```
 
+**不要**拷：开发机上的 `device/.venv`、`device/config.env`（若 Pi 上已配好凭证）。  
+**建议拷**：`device/` 下源码、`prompts/*.wav`、`config.example.env`、`install.sh`、`requirements.txt` 等。
+### 3. 打开摄像头（必做，否则识别失败）
+
+```bash
+sudo nano /boot/firmware/config.txt
+```
+
+加入或改成：
+
+```ini
+camera_auto_detect=0
+dtoverlay=imx219,cam0
+```
+
+`sudo reboot` 后检查：
+
+```bash
+rpicam-hello --list-cameras
+# 应能看到 imx219
+```
+
+### 4. 安装依赖并自启
+
+详细说明（apt 大包、venv 链到系统 picamera2 等）见 [`device/README.md`](device/README.md) 第 3 节。精简版：
+
+```bash
+cd ~/figure-stage/device
+sudo apt update
+sudo apt install -y python3-venv python3-pip \
+  python3-picamera2 python3-opencv python3-numpy python3-scipy \
+  network-manager alsa-utils
+sudo systemctl enable --now NetworkManager
+
+python3 -m venv .venv
+source .venv/bin/activate
+# 让 venv 能 import 系统里的 picamera2（版本号按本机 python 改）
+PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+echo "/usr/lib/python3/dist-packages" > ".venv/lib/python${PYVER}/site-packages/system-packages.pth"
+
+pip install httpx sounddevice websockets -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 或: pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+python -c "import picamera2, cv2, httpx, sounddevice, websockets; print('OK')"
+
+cp config.example.env config.env
 sudo bash install.sh
 sudo systemctl enable --now figure-stage
 ```
 
-开机后按上面「门户与配网地址」打开网页：配好 Wi‑Fi → 填云与豆包凭证 → 至少注册 1 只手办。  
-都齐了之后，设备会**自动开始舞台**（空台采背景、放手办即可对话）；门户首页也会显示已就绪。
+提示音已在 `device/prompts/*.wav`，一般不用再拷。
+
+### 5. 手机打开门户
+
+| 场景 | 操作 | 地址 |
+|------|------|------|
+| Pi 还没连家里 Wi‑Fi | 手机连热点 `FigureStage-Setup`，密码 `figurestage` | **http://10.42.0.1:8080/** |
+| Pi 已在家里网 | 手机连同一 Wi‑Fi | **http://figure-stage.local:8080/** |
+
+配网成功后热点会关，手机请改连家里 Wi‑Fi，再收藏 `.local` 地址。
+
+按首页提示依次：
+
+1. **Wi‑Fi**（若还在热点）  
+2. **凭证**：填云地址 + Token + 豆包三项；声卡编号用下面命令查  
+
+```bash
+cd ~/figure-stage/device && source .venv/bin/activate
+python -c "import sounddevice as sd; print(sd.query_devices())"
+```
+
+把合适的 USB 设备填进 `AUDIO_DEVICE_ID`（门户保存即可）。  
+3. **手办注册**：起名（= 唤醒词）→ 选音色 → 手办放镜头前 → 注册。注册后请**先移开手办几秒**，方便采空台背景。
+
+首页显示「设置完成」后，监督进程会自动起舞台。
+
+### 6. 第一次玩
+
+1. 保持空台几秒（采背景）  
+2. 把手办放到台上 → 应开始对话  
+3. 聊完不拿开 → 喊**注册时的名字**可再聊  
+4. 出问题看日志：
+
+```bash
+sudo journalctl -u figure-stage -f
+```
+
+更全的排障表：[`device/README.md`](device/README.md) 第 8 节。
 
 ---
 
-## 运行时行为摘要
+## 架构（了解即可）
 
-1. **开机** → `figure-stage.service` → `python -m supervisor`
-2. 等 Wi‑Fi（默认 20s）→ 无网则开热点 `FigureStage-Setup` / `figurestage`，门户 **http://10.42.0.1:8080/**
-3. 无网提示音 **同一次离线只播一次**（不是循环念）
-4. 凭证 + ≥1 手办 → 自动起舞台；注册后会空台等待 + 启动扫描
-5. 聊完手办不移开 → **喊注册名**唤醒（不上 60s 视觉自动再开聊）；空台 / 未识别物体喊名字无效
+```
+树莓派 device/  ──HTTPS+Token──►  识别云（只存特征/清单）
+  supervisor → 门户 :8080 + 自动启停舞台
+  舞台：触发采帧 → 云识别 → 本机实时语音 → 名字唤醒
+```
+
+| 数据 | 存在哪 |
+|------|--------|
+| 视觉特征、手办名、音色预设 | 识别云 |
+| 人设 | 本机 `device/figures_local.json` |
+| 密钥 / DEVICE_ID | 本机 `device/config.env`（门户可改） |
+
+仓库结构：日常只动 **`device/`**；`legacy/` 为旧本机识别归档。
 
 ---
 
-## 与识别云的约定
+## 常见卡点（复刻时）
 
-- 请求头：`Authorization: Bearer <DEVICE_CLOUD_TOKEN>`
-- `DEVICE_ID`：门户首次自动生成并写入本机
-- 云地址与 Token 由运营方下发；设备只负责调用
+| 现象 | 先查 |
+|------|------|
+| `No cameras available` | `dtoverlay=imx219,cam0`，`rpicam-hello --list-cameras` |
+| 门户打不开 | 热点用 `10.42.0.1`；联网用 `.local` 或 `hostname -I` |
+| 有声卡但无声 / Device busy | `/etc/asound.conf` 指 USB；`AUDIO_DEVICE_ID` 是否对 |
+| 认不出手办 | 是否已填对云 Token；注册与运行机位/光线是否接近 |
+| 没有云地址 | 本仓库无法单独完成识别；需运营方云或自建兼容 API |
 
 ---
 
 ## 许可
 
+本项目采用**自定义许可**（不是 MIT）：
+
+- **非商业使用**：免费（个人学习、研究、hobby、非盈利演示等）  
+- **商业使用**：须事先获得许可人书面同意  
+
+详见：
+
 | 文档 | 说明 |
 |------|------|
-| [LICENSE](LICENSE) | 非商业免费 |
-| [COMMERCIAL.md](COMMERCIAL.md) | 商用联系 dww1999zj@gmail.com |
-| [TRADEMARK.md](TRADEMARK.md) | 项目名称规则 |
+| [LICENSE](LICENSE) | 完整许可条款 |
+| [COMMERCIAL.md](COMMERCIAL.md) | 商用授权说明与联系方式 |
+| [TRADEMARK.md](TRADEMARK.md) | 「手办舞台 / Figure Stage」等名称规则 |
 
+商用联系：**dww1999zj@gmail.com**  
 许可人：**dww1999zj-cn**
