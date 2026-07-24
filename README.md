@@ -19,9 +19,9 @@
 
 ## 复刻前先读这三句
 
-1. **请只部署 [`device/`](device/)**（拷贝该目录即可，可以不整仓 clone）； 
-2. **必须有识别云**：本仓库是设备端，视觉特征在云上算。联系作者（vx:alex_198888）分配 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（或可以自建云服务）。**没有云地址时，舞台无法识别手办。**  
-3. **完整命令、排障、摄像头细节**在 **[`device/README.md`](device/README.md)**；下面是「从零到手办第一次开口」的最短路径。
+1. **可以只部署 [`device/`](device/)**（拷贝该目录即可，可以不用整仓 clone）； 
+2. **需要有识别云**：本仓库是设备端，视觉特征需要云注册和识别。联系作者（vx:alex_198888）分配 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（也可以自建云服务）。**没有云地址时，舞台无法识别手办。**  
+3. **完整命令、排障、摄像头细节**在 **[`device/README.md`](device/README.md)**；
 
 ---
 
@@ -36,6 +36,8 @@
 | 断网配网 | 自动热点 + 提示音（仓库已含 wav） |
 
 ---
+   下面是「从零到手办第一次开口」的最短路径：
+
 
 ## 物料清单（已验证：Pi 5）
 
@@ -51,7 +53,7 @@
 
 | 需要 | 从哪来 |
 |------|--------|
-| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 联系项目作者（vx:alex_198888）下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
+| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 可联系项目作者（vx:alex_198888）下发（与云端 `CLOUD_API_TOKEN` 一致） |
 | 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY` | [火山引擎语音](https://console.volcengine.com/speech/app) 申请开通**端到端实时语音** |
 
 <p align="center">
@@ -179,7 +181,7 @@ python -c "import sounddevice as sd; print(sd.query_devices())"
 sudo journalctl -u figure-stage -f
 ```
 
-更全的排障表：[`device/README.md`](device/README.md) 第 8 节。
+更全的排障表：[`device/README.md`](device/README.md) 
 
 ---
 
@@ -192,7 +194,7 @@ sudo journalctl -u figure-stage -f
 | 门户打不开 | 热点用 `10.42.0.1`；联网用 `.local` 或 `hostname -I` |
 | 有声卡但无声 / Device busy | `/etc/asound.conf` 指 USB；`AUDIO_DEVICE_ID` 是否对 |
 | 认不出手办 | 是否已填对云 Token；注册与运行背景/光线是否接近 |
-| 没有云地址 | 本仓库无法单独完成注册、识别；需使用云（联系作者提供）或自建兼容 API |
+| 没有云地址 | 本仓库无法单独完成注册、识别；需使用云联系作者提供（vx:alex_198888）或自建兼容云端识别 API |
 
 ---
 
