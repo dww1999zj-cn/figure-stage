@@ -20,8 +20,8 @@
 ## 复刻前先读这三句
 
 1. **请只部署 [`device/`](device/)**（拷贝该目录即可，可以不整仓 clone）； 
-2. **必须有识别云**：本仓库是设备端，视觉特征在云上算。联系作者分配 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（或可以自建云服务）。**没有云地址时，舞台无法识别手办。**  
-3. **完整命令、排障、摄像头细节**在 **[`device/README.md`](device/README.md)**；下面是「从零到第一次开口」的最短路径。
+2. **必须有识别云**：本仓库是设备端，视觉特征在云上算。联系作者（vx:alex_198888）分配 `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN`（或可以自建云服务）。**没有云地址时，舞台无法识别手办。**  
+3. **完整命令、排障、摄像头细节**在 **[`device/README.md`](device/README.md)**；下面是「从零到手办第一次开口」的最短路径。
 
 ---
 
@@ -45,15 +45,13 @@
 | microSD（刷 64-bit Raspberry Pi OS） | 建议 Bookworm |
 | IMX219 CSI 摄像头 | **必须**改 `config.txt`，见步骤 3 |
 | USB 声卡 + 麦克风 + 扬声器 | 不要默认走 HDMI |
-| 固定展示台 / 支架 | 注册与运行机位尽量一致 |
-| （可选）网线 | 断 Wi‑Fi 测热点时仍能 SSH |
-| （可选）同款 3D 舞台文件 | 微信 alex_198888 |
+| （可选）同款 3D 舞台文件 | 微信（ alex_198888） |
 
 **账号（软件）：**
 
 | 需要 | 从哪来 |
 |------|--------|
-| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 联系项目作者下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
+| `CLOUD_BASE_URL` + `DEVICE_CLOUD_TOKEN` | 联系项目作者（vx:alex_198888）下发（与云端 `CLOUD_API_TOKEN` 一致，**勿自造**） |
 | 豆包 Realtime：`DOUBAO_APP_ID` / `ACCESS_KEY` / `APP_KEY` | [火山引擎语音](https://console.volcengine.com/speech/app) 申请开通**端到端实时语音** |
 
 <p align="center">
